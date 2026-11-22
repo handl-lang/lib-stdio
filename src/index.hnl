@@ -1,0 +1,82 @@
+--- stdio -- standard-stream contract: buffered text and binary I/O on
+--- the process's stdin/stdout/stderr.
+---
+--- This is the port side of the port/impl split (the `posix`/`fetch`
+--- discipline): every arrow below is a *signature + doc*, no
+--- implementation. Backends (`stdio-c` over libc stdio via `ffi.call`)
+--- export arrows of these types.
+---
+--- stdio is UX ergonomics ON TOP of posix: the syscall contract stays
+--- clean in `posix` (`read`/`write`/`open` on raw fds); this contract
+--- is the buffered, line-oriented, String/Bytes-facing layer every
+--- program actually prints and reads through.
+---
+--- Effect discipline: `~[1]~>` marks every arrow — all of them reach
+--- the kernel through libc. A failed call raises `err` naming the op
+--- and the `strerror` text (`"stdio: <op>: <strerror>"`), so success
+--- paths return plain values and `-1`/NULL/EOF sentinels never leak
+--- into handl code. `read_line` returns null ONLY at end-of-file.
+---
+--- Buffering model — the C stdio contract: `stdout` is line-buffered
+--- when attached to a terminal and block-buffered otherwise;
+--- `stderr` is unbuffered; `stdin` reads ahead into its own buffer.
+--- `flush` forces every pending output write. A backend MUST preserve
+--- these observable semantics but MAY pick its own buffer sizes — the
+--- contract pins behavior, not capacities.
+---
+--- Surface conventions:
+---   * `print`/`eprint` take a String and append `'\n'`.
+---   * `write`/`ewrite` take String or Bytes verbatim — no added
+---     newline; a String is written as its UTF-8 encoding.
+---   * `read_line` returns the next line WITHOUT the trailing newline
+---     (a final line lacking `'\n'` at EOF is still returned), or null
+---     at end-of-file.
+---   * `read_all` drains stdin to EOF as Bytes.
+---   * `read_chars(n)` reads up to `n` bytes — short at EOF.
+
+from "type" import { Unit }
+
+-- ---------------------------------------------------------------------------
+-- Output
+-- ---------------------------------------------------------------------------
+
+--- print(s): write `s` to stdout followed by a newline. Line-buffered
+--- when stdout is a terminal (the newline may flush), block-buffered
+--- otherwise — `flush` forces the write either way.
+export print: String ~[1]~> Unit
+
+--- eprint(s): like `print` but on stderr. stderr is unbuffered under
+--- the C stdio model, so each call reaches the kernel promptly —
+--- the right channel for diagnostics that must not be lost.
+export eprint: String ~[1]~> Unit
+
+--- write(data): raw stdout write — String (UTF-8 encoded) or Bytes,
+--- no added newline. Buffered per the stdout policy; use `flush` when
+--- the bytes must be visible now.
+export write: Value ~[1]~> Unit
+
+--- ewrite(data): raw stderr write — String or Bytes verbatim.
+export ewrite: Value ~[1]~> Unit
+
+--- flush(): force all pending buffered output to the kernel
+--- (fflush(NULL) semantics — covers stdout and stderr).
+export flush: () ~[1]~> Unit
+
+-- ---------------------------------------------------------------------------
+-- Input
+-- ---------------------------------------------------------------------------
+
+--- read_line(): the next stdin line as a String WITHOUT the trailing
+--- newline, or null at end-of-file. Blocks until a newline, EOF, or
+--- error. A final unterminated line is returned before the next call
+--- yields null. Bytes that are not valid UTF-8 raise `stdio:` err.
+export read_line: () ~[1]~> Value
+
+--- read_all(): drain stdin to EOF, returning the raw Bytes. Buffered —
+--- one kernel read per buffer's worth, not per byte.
+export read_all: () ~[1]~> Bytes
+
+--- read_chars(n): up to `n` bytes from stdin as Bytes — fewer only at
+--- EOF. `n` must be non-negative (`n = 0` returns empty Bytes without
+--- touching the stream).
+export read_chars: Int ~[1]~> Bytes

@@ -1,0 +1,10 @@
+-- lib-stdio: modules this package provides (entry defaults to
+-- src/index.hnl; N modules resolve to src/<name>/index.hnl).
+{
+  modules: ["stdio"],
+  name: "stdio",
+  description: "Standard-stream I/O contract — buffered stdin/stdout/stderr port signatures.",
+  license: "MIT",
+  keywords: ["stdio", "stdin", "stdout", "stderr", "io", "contract", "stdlib"],
+  homepage: "https://github.com/handl-lang/lib-stdio",
+}

@@ -6,7 +6,7 @@
 
 [[repos]]
 name = "handl-lang/lib-stdio"
-dir = "/home/luis/GitHub/handl-lang/lib-stdio"
+dir = "~//GitHub/handl-lang/lib-stdio"
 branch = "refs/heads/main"
   [repos.runner]
   kind = "script"

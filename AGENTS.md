@@ -11,7 +11,7 @@ stdin/stdout/stderr. Backend: `stdio-c` over libc via `ffi.call`.
 | --- | --- |
 | `src/index.hnl` | the contract — signatures + docs |
 | `pkg.hnl` | manifest — `modules: ["stdio"]` |
-| `scripts/hnl-gate.sh`, `ci.sh` | the gate / bupha entry |
+| `scripts/hnl-gate.sh`, `workflows/gate.yaml` | the gate / bupha entry |
 
 ## Contract
 
